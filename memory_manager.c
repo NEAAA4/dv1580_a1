@@ -60,7 +60,7 @@ void* mem_resize(void* block, size_t size) {
         return NULL;
     }
 
-    size_t offset = (unsigned char*)block - memory_pool;
+    size_t offset = (unsigned char*)block - (unsigned char*)memory_pool;
 
     size_t sizeing = 0;
     for (size_t i = offset; i<pool_size && allocated[i]; i++) {
