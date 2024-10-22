@@ -26,7 +26,7 @@ void mem_init(size_t size) {
 
     pool_size = total_size / block_size;
 
-    allocated = (bool*)malloc(total_blocks * sizeof(bool));
+    allocated = (bool*)malloc(pool_size * sizeof(bool));
     if (allocated == NULL) {
         printf("Memory allocation failed\n");
         free(memory_pool);
