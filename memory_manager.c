@@ -5,7 +5,7 @@
 #include <stdint.h>
 #include <stddef.h>
 
-#define pool_size 1024 // storlek på memory pool
+#define pool_size 5000 // storlek på memory pool
 #define block_size 16 // storlek på memory block
 
 
