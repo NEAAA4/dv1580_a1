@@ -5,71 +5,64 @@
 #include <stdint.h>
 #include <stddef.h>
 
+#define pool_size 1024 // storlek på memory pool
+#define block_size 16 // storlek på memory block
 
-typedef struct Memory {
-    size_t size;
-    struct Memory* next;
-    int free;
-} Memory;
 
-static void* memory_pool = NULL;
-static size_t pool_size = 0;
-static Memory* allocated = NULL;
+// char memory_pool[pool_size]; 
+// bool allocated[pool_size/block_size];
+size_t num_blocks;
+size_t size;
+
+
+void* memory_pool = NULL;
+bool* allocated = NULL;
+
 
 void mem_init(size_t size) {
+    // Allocate memory static 
+
     memory_pool = malloc(size);
     if (memory_pool == NULL) {
         printf("Memory allocation failed\n");
         return;
     }
 
-    pool_size = size;
-    allocated = (Memory*)memory_pool;
-    allocated->size = size - sizeof(Memory*);
-    allocated->next = NULL;
-    allocated->free = 1;
+    allocated = malloc(size / block_size * sizeof(bool));
+    if (allocated == NULL) {
+        printf("Memory allocation failed\n");
+        free(memory_pool);
+        return;
+    }
 
+    for (int i = 0; i < size / block_size; i++) {
+        allocated[i] = false;
+    }
 }
 
-void* mem_alloc(size_t size) {
-    Memory* here = allocated;
-    Memory* bfore = NULL;
-
-    while (here != NULL) {
-        if (here->free == 1 && here->size >= size) {
-            if (here->size >= size + sizeof(Memory)) {
-                Memory* block = (Memory*)((uintptr_t)here + sizeof(Memory)+ size);
-                block->size = here->size - sizeof(Memory) - size;
-                block->next = here->next;
-                block->free = 1;
-
-                here->size = 0;
-                here->next = block;
-            }
-
-            here->free = 0;
-            return (void*)((uintrp_t)here + sizeof(Memory));
+void* mem_alloc(size_t size){
+    //allocate in free space
+    if (size > block_size) {
+        return NULL; 
     }
-    bfore = here;
-    here = here->next;
+    for (int i = 0; i < pool_size / block_size; i++) {
+        if (!allocated[i]) {
+            allocated[i] = true;
+           return (void*)((char*)memory_pool + i * block_size); 
+        }
+    }
+    return NULL;
 }
 
 
 void mem_free(void* block){
-    if (block == NULL) {
-        return;
-    }
+    if (block >= (void*)memory_pool && block < (void*)(memory_pool + pool_size)) {
+        return; // kollar så block är inom räckvidd
+    } 
+    int index = ((char*)block - (char*)memory_pool) / block_size;
 
-    Memory* head = (Memory*)((uintptr_t)block - sizeof(Memory));
-    head->free = 1;
-
-    Memory* here = free;
-    while (here != NULL) {
-        if (here->free && here->next != NULl && here->next->free) {
-            here->size += sizeof(Memory) + here->next->size;
-            here->next = here->next->next;
-        }
-        here = here->next;
+    if (index >= 0 && index < pool_size / block_size) {
+        allocated[index] = false; 
     }
 }
 
@@ -88,6 +81,6 @@ void* mem_resize(void* block, size_t size) {
 void mem_deinit() {
     // Deallocate memory static
     for (int i = 0; i < pool_size / block_size; i++) {
-        allocated[i] = false; // sätter allt som tomt
+        allocated[i] = false; 
     }
 }
