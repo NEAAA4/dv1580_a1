@@ -5,15 +5,11 @@
 #include <stdint.h>
 #include <stddef.h>
 
-#define pool_size 5000 // storlek på memory pool
-#define block_size 16 // storlek på memory block
 
-
-// char memory_pool[pool_size]; 
-// bool allocated[pool_size/block_size];
 size_t num_blocks;
 size_t size;
-
+size_t pool_size = 0;
+size_t block_size = 0;
 
 void* memory_pool = NULL;
 bool* allocated = NULL;
