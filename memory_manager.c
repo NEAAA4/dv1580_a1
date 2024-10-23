@@ -6,14 +6,11 @@
 #include <stddef.h>
 
 
-#define total_size 5000
-#define block_size 64
+char* memory_pool;
+bool* allocated;
+size_t pool_size;
+size_t block_size;
 
-// size_t num_blocks;
-void* memory_pool = NULL;
-bool* allocated = NULL;
-size_t pool_size = 0;
-size_t num_blocks;
 
 void mem_init(size_t size) {
     // Allocate memory static 
@@ -55,26 +52,26 @@ void* mem_alloc(size_t size){
 }
 
 
+void mem_free(void* block){
 
-void mem_free(void* block) {
     if (block == NULL) {
         return;
     }
-
-    if (block < (void*)memory_pool || block >= (void*)(memory_pool + pool_size)) {
-        printf("Error: Block %p is out of bounds (memory pool starts at %p).\n", block, memory_pool);
+    
+    if (block >= (void*)memory_pool && block < (void*)(memory_pool + pool_size)) {
         return; 
     }
 
     int index = ((char*)block - (char*)memory_pool) / block_size;
-    if (index >= 0 && index < pool_size / block_size && allocated[index]) {
-        allocated[index] = false;  
-        printf("Block at index %d freed (address: %p).\n", index, block);
-    } else {
-        printf("Error: Invalid block pointer or block already free.\n");
-    }
-}
 
+    if (index >= 0 && index < pool_size / block_size && allocated[index]) {
+        allocated[index] = false;
+    }
+    else {
+        return;
+    }
+
+}
 
 void* mem_resize(void* block, size_t size) {
     void* new = mem_alloc(size);
