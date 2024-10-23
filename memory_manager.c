@@ -14,27 +14,10 @@ size_t num_blocks;
 
 void mem_init(size_t size) {
     // Allocate memory static 
-
-    memory_pool = malloc(size);
-    if (memory_pool == NULL) {
-        printf("Memory allocation failed\n");
-        return;
+    
+    for (int i = 0; i < size / block_size; i++) {
+        allocated[i] = false;
     }
-
-    pool_size = total_size / block_size;
-
-    allocated = (bool*)malloc(pool_size * sizeof(bool));
-    if (allocated == NULL) {
-        printf("Memory allocation failed\n");
-        free(memory_pool);
-        return;
-    }
-
-    memset(allocated, 0, pool_size * sizeof(bool));
-
-    // for (int i = 0; i < size / block_size; i++) {
-    //     allocated[i] = false;
-    // }
 }
 
 void* mem_alloc(size_t size){
