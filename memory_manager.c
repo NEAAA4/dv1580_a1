@@ -61,9 +61,8 @@ void mem_free(void* block){
         return;
     }
     
-    if (block < (void*)memory_pool || block >= (void*)(memory_pool + pool_size)) {
-        printf("Memory block is not in the pool\n");
-        return;
+    if (block >= (void*)memory_pool && block < (void*)(memory_pool + pool_size)) {
+        return; 
     }
 
     int index = ((char*)block - (char*)memory_pool) / block_size;
