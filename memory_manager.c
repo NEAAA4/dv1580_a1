@@ -9,16 +9,17 @@
 #define total_size 5000
 #define block_size 64
 
-size_t num_blocks;
+// size_t num_blocks;
 void* memory_pool = NULL;
 bool* allocated = NULL;
 size_t pool_size = 0;
+
 
 void mem_init(size_t size) {
     // Allocate memory static 
 
     size = total_size;
-    memory_pool = malloc(size);
+    memory_pool = malloc(total_size);
     if (memory_pool == NULL) {
         printf("Memory allocation failed\n");
         return;
@@ -33,9 +34,9 @@ void mem_init(size_t size) {
         return;
     }
 
-    for (int i = 0; i < size / block_size; i++) {
-        allocated[i] = false;
-    }
+    // for (int i = 0; i < size / block_size; i++) {
+    //     allocated[i] = false;
+    // }
 }
 
 void* mem_alloc(size_t size){
