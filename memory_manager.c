@@ -5,15 +5,12 @@
 #include <stdint.h>
 #include <stddef.h>
 
+#define pool_size 1024
+#define block_size 16
 
-#define total_size 5000
-#define block_size 64
-
-// size_t num_blocks;
-void* memory_pool = NULL;
-bool* allocated = NULL;
-size_t pool_size = 0;
-
+char memory_pool[pool_size];
+bool allocated[pool_size/block_size];
+size_t num_blocks;
 
 void mem_init(size_t size) {
     // Allocate memory static 
@@ -46,13 +43,10 @@ void* mem_alloc(size_t size){
         return NULL; 
     }
 
-    int num_blocks = pool_size / block_size;
-    for (int i = 0; i < num_blocks; i++) {
+    for (int i = 0; i < pool_size / block_size; i++) {
         if (!allocated[i]) {
             allocated[i] = true;
-            void* block = &memory_pool[i * block_size];
-           
-            return block;  
+            return (void*)&memory_pool[i * block_size];
         }
     }
     return NULL;
@@ -60,41 +54,26 @@ void* mem_alloc(size_t size){
 
 
 
-void mem_free(void* block) {
+void mem_free(void* block){
+
     if (block == NULL) {
         return;
     }
-
-    if (block < (void*)memory_pool || block >= (void*)(memory_pool + pool_size)) {
-        return;
-    }
-
-    int index = ((char*)block - (char*)memory_pool) / block_size;
-
-    if (index >= 0 && index < pool_size / block_size && allocated[index]) {
-        allocated[index] = false;  
-    } 
-}
-
-void mem_free(void* block) {
-    if (block == NULL) {
-        return;
-    }
-
-    if (block < (void*)memory_pool || block >= (void*)(memory_pool + pool_size)) {
-        printf("Error: Block %p is out of bounds (memory pool starts at %p).\n", block, memory_pool);
+    
+    if (block >= (void*)memory_pool && block < (void*)(memory_pool + pool_size)) {
         return; 
     }
 
     int index = ((char*)block - (char*)memory_pool) / block_size;
-    if (index >= 0 && index < pool_size / block_size && allocated[index]) {
-        allocated[index] = false;  
-        printf("Block at index %d freed (address: %p).\n", index, block);
-    } else {
-        printf("Error: Invalid block pointer or block already free.\n");
-    }
-}
 
+    if (index >= 0 && index < pool_size / block_size && allocated[index]) {
+        allocated[index] = false;
+    }
+    else {
+        return;
+    }
+
+}
 
 
 void* mem_resize(void* block, size_t size) {
