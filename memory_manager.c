@@ -29,18 +29,16 @@ void mem_init(size_t size) {
         return;
     }
 
-    pool_size = size;
-
     lista = (Memory*)memory_pool;
     lista->size = size - sizeof(Memory);
     lista->free = true;
     lista->next = NULL; 
 
-    allocated = 0;     
+    allocated = 0;   
+    pool_size = size;  
 }
 
 void* mem_alloc(size_t size) {
-
     if (size <= 0) {
         return NULL;  
     }
@@ -53,6 +51,7 @@ void* mem_alloc(size_t size) {
 
     while (here != NULL) {
         if (here->free && here->size >= size) {
+           
             if (here->size > size + sizeof(Memory)) {
                 Memory *new = (Memory *)((char *)here + sizeof(Memory) + size);
                 new->size = here->size - size - sizeof(Memory);
@@ -64,26 +63,37 @@ void* mem_alloc(size_t size) {
             }
 
             here->free = false;
-            allocated += size; 
-            return (char *)here + sizeof(Memory);  
+            allocated += size + sizeof(Memory);  
+
+            return (char *)here + sizeof(Memory); 
         }
         here = here->next;
     }
 
-    return NULL; 
+    return NULL;
 }
 
 
-
-void mem_free(void *block) {
+void mem_free(void* block) {
     if (block == NULL) {
-        return;
+        return; 
     }
 
-    Memory *here = (Memory *)((char *)block - sizeof(Memory));
-    here->free = true;  
-    allocated -= here->size;
+    Memory* here = (Memory*)((char*)block - sizeof(Memory));
+
+    if (here->free) {
+        return; 
+    }
+
+    here->free = true;
+    allocated -= here->size + sizeof(Memory);
+
+    if (here->next != NULL && here->next->free) {
+        here->size += here->next->size + sizeof(Memory); 
+        here->next = here->next->next; 
+    }
 }
+
 
 
 void* mem_resize(void* block, size_t size) {
@@ -135,9 +145,6 @@ void mem_deinit() {
 
     // Memory *here = lista;
     // while (here != NULL) {
-    //     if (!here->free) {
-    //         printf("Freeing allocated block of size %zu at %p\n", here->size, (void *)here);
-    //     }
     //     here = here->next;
     // }
     // free(memory_pool);
