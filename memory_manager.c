@@ -7,54 +7,77 @@
 
 
 typedef struct Memory {
-    size_t size;          
+    uint16_t size;          
     bool free;        
     struct Memory *next; 
 } Memory;
 
 
 void* memory_pool = NULL;
-Memory *lista = NULL;
+Memory* lista = NULL;
 size_t allocated = 0;
 size_t pool_size = 0;
 
 
+// void mem_init(size_t size) {
+//     if (memory_pool != NULL) {
+//         return;
+//     }
+
+//     memory_pool = malloc(size);
+
+//     if (memory_pool == NULL) {
+//         return;
+//     }
+
+//     lista = (Memory*)memory_pool;
+//     lista->size = size - sizeof(Memory);
+//     lista->free = true;
+//     lista->next = NULL; 
+
+//     allocated = 0;  
+//     pool_size = size;   
+// }
+
 void mem_init(size_t size) {
-    if (memory_pool != NULL) {
-        return;
-    }
-
-    pool_size = size;  
-    memory_pool = malloc(size);
     if (memory_pool == NULL) {
-        return;
+        memory_pool = malloc(size);
+        if (!memory_pool) {
+            printf("Failed to allocate %zu \n", size);
+            return;
+        }
+        pool_size = size; 
+        allocated = 0; 
+
+        lista = (Memory *)memory_pool;
+        lista->size = size - sizeof(Memory);
+        lista->free = true;
+        lista->next = NULL;
+
     }
-
-    lista = (Memory*)memory_pool;
-    lista->size = size - sizeof(Memory);
-    lista->free = true;
-    lista->next = NULL; 
-
-    allocated = 0;   
 }
 
+
 void* mem_alloc(size_t size) {
-    if (size <= 0) {
+    if (size == 0) {
         return NULL; 
     }
 
     size_t total = size - sizeof(Memory);
 
-    if (allocated + total >= pool_size) {
+    if (allocated + total > pool_size) {
+        printf("%ld \n", total);
+        printf("%ld, %ld \n", allocated, pool_size);
+        printf("Not enough memory \n");
         return NULL; 
     }
-    
+
     Memory *here = lista;
 
     while (here != NULL) {
-        if (here->free && here->size >= size) {
-            if (here->size > size + sizeof(Memory)) {
-                Memory *new = (Memory *)((char *)here + sizeof(Memory) + size);
+        if (here->free && here->size >= total) {
+            if (here->size >= total + sizeof(Memory)) {
+                Memory *new = (Memory *)((char *)here + total);
                 new->size = here->size - total;
                 new->free = true;
                 new->next = here->next;
@@ -72,6 +95,7 @@ void* mem_alloc(size_t size) {
         }
         here = here->next;
     }
+    printf("no suitable block found for allocation of %zu bytes \n", size);
     return NULL;
 }
 
@@ -142,4 +166,3 @@ void mem_deinit() {
         allocated = 0;
     }
 }
-
