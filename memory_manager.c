@@ -57,15 +57,21 @@ void* mem_alloc(size_t size){
 
 
 void mem_free(void* block) {
-
-    if (block >= (void*)memory_pool && block < (void*)(memory_pool + pool_size)) {
+    if (block == NULL) {
         return;
     }
-    size_t offset = (unsigned char*)block - (unsigned char*)memory_pool;
-    size_t index = offset / block_size;
 
-    if (index < num_blocks) {
-        allocated[index] = false;
+    if (block < (void*)memory_pool || block >= (void*)(memory_pool + pool_size)) {
+        printf("Error: Block %p is out of bounds (memory pool starts at %p).\n", block, memory_pool);
+        return; 
+    }
+
+    int index = ((char*)block - (char*)memory_pool) / block_size;
+    if (index >= 0 && index < pool_size / block_size && allocated[index]) {
+        allocated[index] = false;  
+        printf("Block at index %d freed (address: %p).\n", index, block);
+    } else {
+        printf("Error: Invalid block pointer or block already free.\n");
     }
 }
 
