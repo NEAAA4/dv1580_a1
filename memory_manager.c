@@ -55,25 +55,21 @@ void* mem_alloc(size_t size){
 }
 
 
-void mem_free(void* block){
 
+void mem_free(void* block) {
     if (block == NULL) {
         return;
     }
-    
-    if (block >= (void*)memory_pool && block < (void*)(memory_pool + pool_size)) {
-        return; 
+
+    if (block < (void*)memory_pool || block >= (void*)(memory_pool + pool_size)) {
+        return;
     }
 
     int index = ((char*)block - (char*)memory_pool) / block_size;
 
     if (index >= 0 && index < pool_size / block_size && allocated[index]) {
-        allocated[index] = false;
-    }
-    else {
-        return;
-    }
-
+        allocated[index] = false;  
+    } 
 }
 
 void mem_free(void* block) {
