@@ -18,8 +18,7 @@ size_t pool_size = 0;
 void mem_init(size_t size) {
     // Allocate memory static 
 
-    size = total_size;
-    memory_pool = malloc(total_size);
+    memory_pool = malloc(size);
     if (memory_pool == NULL) {
         printf("Memory allocation failed\n");
         return;
@@ -33,6 +32,8 @@ void mem_init(size_t size) {
         free(memory_pool);
         return;
     }
+
+    memset(allocated, 0, pool_size * sizeof(bool));
 
     // for (int i = 0; i < size / block_size; i++) {
     //     allocated[i] = false;
@@ -55,12 +56,16 @@ void* mem_alloc(size_t size){
 
 
 void mem_free(void* block){
+    if (block == NULL) {
+        return;
+    }
+
     if (block >= (void*)memory_pool && block < (void*)(memory_pool + pool_size)) {
         return; // kollar så block är inom räckvidd
     } 
     int index = ((char*)block - (char*)memory_pool) / block_size;
 
-    if (index >= 0 && index < pool_size / block_size) {
+    if (index >= 0 && index < pool_size / block_size && allocated[index]) {
         allocated[index] = false; 
     }
 }
