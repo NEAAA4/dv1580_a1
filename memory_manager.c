@@ -48,7 +48,7 @@ void* mem_alloc(size_t size){
     for (int i = 0; i < pool_size / block_size; i++) {
         if (!allocated[i]) {
             allocated[i] = true;
-           return (void*)((char*)memory_pool + i * block_size); 
+           return (void*)&memory_pool[i * block_size];
         }
     }
     return NULL;
