@@ -19,19 +19,19 @@ static Memory *lista = NULL;
 #define ALIGN sizeof(Memory)
 
 void mem_init(size_t size) {
+    int pool_size = 0;
+    
     if (memory_pool != NULL) {
         return;
     }
-    
+
+    pool_size = size;
     memory_pool = malloc(size);
     if (!memory_pool) {
         return;
     }
     
-    lista = (Memory *) memory_pool;
-    lista->size = size - sizeof(Memory);  
-    lista->free = true;                 
-    lista->next = NULL;                
+    memset(memory_pool, 0, pool_size);           
 }
 
 
