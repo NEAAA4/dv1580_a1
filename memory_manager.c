@@ -24,6 +24,7 @@ void mem_init(size_t size) {
         return;
     }
 
+    pool_size = size;  
     memory_pool = malloc(size);
     if (memory_pool == NULL) {
         return;
@@ -35,41 +36,42 @@ void mem_init(size_t size) {
     lista->next = NULL; 
 
     allocated = 0;   
-    pool_size = size;  
 }
 
 void* mem_alloc(size_t size) {
     if (size <= 0) {
-        return NULL;  
+        return NULL; 
     }
 
+    size_t total = size - sizeof(Memory);
+
+    if (allocated + total >= pool_size) {
+        return NULL; 
+    }
+    
     Memory *here = lista;
-
-    if (allocated + size + sizeof(Memory) > pool_size) {
-        return NULL;  
-    }
 
     while (here != NULL) {
         if (here->free && here->size >= size) {
-           
             if (here->size > size + sizeof(Memory)) {
                 Memory *new = (Memory *)((char *)here + sizeof(Memory) + size);
-                new->size = here->size - size - sizeof(Memory);
+                new->size = here->size - total;
                 new->free = true;
                 new->next = here->next;
 
                 here->size = size;
-                here->next = new;
+                here->next = new;                
+            }
+            else {
+                here->free = false;
             }
 
+            allocated += total; 
             here->free = false;
-            allocated += size + sizeof(Memory);  
-
-            return (char *)here + sizeof(Memory); 
+            return (char *)here + sizeof(Memory);
         }
         here = here->next;
     }
-
     return NULL;
 }
 
@@ -80,20 +82,13 @@ void mem_free(void* block) {
     }
 
     Memory* here = (Memory*)((char*)block - sizeof(Memory));
-
     if (here->free) {
         return; 
     }
 
     here->free = true;
     allocated -= here->size + sizeof(Memory);
-
-    if (here->next != NULL && here->next->free) {
-        here->size += here->next->size + sizeof(Memory); 
-        here->next = here->next->next; 
-    }
 }
-
 
 
 void* mem_resize(void* block, size_t size) {
@@ -139,18 +134,6 @@ void* mem_resize(void* block, size_t size) {
 
 
 void mem_deinit() {
-    if (memory_pool == NULL) {
-        return;
-    }
-
-    // Memory *here = lista;
-    // while (here != NULL) {
-    //     here = here->next;
-    // }
-    // free(memory_pool);
-    // memory_pool = NULL; 
-    // lista = NULL;   
-
     if (memory_pool != NULL) {
         free(memory_pool);
         memory_pool = NULL;
