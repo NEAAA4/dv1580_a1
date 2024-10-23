@@ -56,18 +56,25 @@ void* mem_alloc(size_t size){
 
 
 void mem_free(void* block){
+
     if (block == NULL) {
         return;
     }
+    
+    if (block < (void*)memory_pool || block >= (void*)(memory_pool + pool_size)) {
+        printf("Memory block is not in the pool\n");
+        return;
+    }
 
-    if (block >= (void*)memory_pool && block < (void*)(memory_pool + pool_size)) {
-        return; // kollar så block är inom räckvidd
-    } 
     int index = ((char*)block - (char*)memory_pool) / block_size;
 
     if (index >= 0 && index < pool_size / block_size && allocated[index]) {
-        allocated[index] = false; 
+        allocated[index] = false;
     }
+    else {
+        return;
+    }
+
 }
 
 void* mem_resize(void* block, size_t size) {
