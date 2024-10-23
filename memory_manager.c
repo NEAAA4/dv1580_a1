@@ -31,18 +31,18 @@ void mem_init(size_t size) {
     lista = (Memory *) memory_pool;
     lista->size = size - sizeof(Memory);  
     lista->free = true;                 
-    lista->next = NULL;                     
+    lista->next = NULL;                
 }
 
 
 void* mem_alloc(size_t size) {
+    size = malloc(size);
+    Memory *here = lista;
+    Memory *bfore = NULL;
+
     if (size <= 0) {
         return NULL;
     }
-
-    size = align_size(size);
-    Memory *here = lista;
-    Memory *bfore = NULL;
 
     while (here != NULL) {
         if (here->free && here->size >= size) {
@@ -74,7 +74,7 @@ void mem_free(void* block) {
         return; 
     }
 
-    Memory *here = (Memory *)((char *)block - sizeof(Memory));
+    Memory *block_here = (Memory *)((char *)block - sizeof(Memory));
     if (!block_here->free) {
         block_here->free = true;
 
@@ -108,7 +108,7 @@ void* mem_resize(void* block, size_t size) {
         return NULL;
     }
 
-    size = align_size(size);
+    size = malloc(size);
     if (size <= block_here->size) {
         block_here->size = size;
         return block;
@@ -117,7 +117,7 @@ void* mem_resize(void* block, size_t size) {
     Memory *block_next = block_here->next;
     if (block_next != NULL && block_next->free && (block_here->size + sizeof(Memory) + block_next->size) >= size) {
         block_here->size += block_next->size + sizeof(Memory);
-        block_here->next = next_block->next; 
+        block_here->next = block_next->next; 
         block_here->free = false; 
         return block;
     }
@@ -140,7 +140,7 @@ void mem_deinit() {
     Memory *here = lista;
     while (here != NULL) {
         if (!here->free) {
-            printf("Freeing allocated block of size %zu at %p\n", current->size, (void *)current);
+            printf("Freeing allocated block of size %zu at %p\n", here->size, (void *)here);
         }
         here = here->next;
     }
