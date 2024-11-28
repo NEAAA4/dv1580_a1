@@ -1,196 +1,153 @@
-
-
+#include "memory_manager.h"
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdbool.h>
 #include <string.h>
 
+// Structure for memory block
 typedef struct Memory {
     size_t size;
-    bool free;
-    struct Memory *next;
+    size_t starting;
+    struct Memory* next;
+    int freeing;
 } Memory;
 
-
-static Memory *lista = NULL;
-static size_t allocated = 0;
+// Global variables
+static char* memory_pool = NULL;
+static Memory* lista = NULL;
 static size_t pool_size = 0;
-static size_t max_allocation = 0;
-
-#define MEMORY_HEADER_SIZE sizeof(Memory)
-
-
 
 void mem_init(size_t size) {
-    if (size <= MEMORY_HEADER_SIZE) {
-        printf("Error: Memory pool size must be greater than the memory header size.\n");
-        lista = NULL;
+    memory_pool = (char*)malloc(size);
+    if (memory_pool == NULL) {
+        printf("Error: Memory allocation failed\n");
         return;
     }
 
-    if (lista != NULL) {
-        free(lista);
-    }
-
-    max_allocation = (size_t)(size * 1.2);  // 120% of the pool size
-
-    lista = (Memory *)malloc(size);
-    if (lista == NULL) {
-        fprintf(stderr, "Failed to initialize memory pool\n");
-        return;
-    }
-
-    lista->size = size - MEMORY_HEADER_SIZE;
-    lista->free = true;
-    lista->next = NULL;
-    
     pool_size = size;
-    allocated = 0;
+    lista = (Memory*)malloc(sizeof(Memory));
+    if (lista == NULL) {
+        printf("Error: Allocation of block list failed\n");
+        return;
+    }
+
+    lista->starting = 0;
+    lista->size = size;
+    lista->freeing = 1;  // The block is free
+    lista->next = NULL;
 }
 
-// Memory allocation function
-void *mem_alloc(size_t size) {
-    printf("mem_alloc called with size = %zu\n", size);
+void* mem_alloc(size_t size) {
     if (size == 0) {
-        return NULL;
+        return NULL; 
     }
 
-    size_t total = 0;
-    if (size < 500) {
-        total = size + MEMORY_HEADER_SIZE;
-    } else {
-        total = size - MEMORY_HEADER_SIZE;
-    }
-
-
-    if (allocated + total > max_allocation) {
-        return NULL;  // Exceeds the max allocation limit
-    }
-
-    allocated += total;
-
-    Memory *here = lista;
+    Memory* here = lista;
     while (here != NULL) {
-        if (here->free && here->size >= total) {
-            // If block is large enough, split it
-            if (here->size >= total + MEMORY_HEADER_SIZE) {
-                Memory *new = (Memory *)((char *)here + total);
-                new->size = here->size - total;
-                new->free = true;
+        if (here->freeing && here->size >= size) {
+            if (here->size > size) { // splitting block
+                Memory* new = (Memory*)malloc(sizeof(Memory));
+                if (new == NULL) {
+                    printf("Allocation for new block failed \n");
+                    return NULL;  
+                }
+                
+                new->starting = here->starting + size;
+                new->size = here->size - size;
+                new->freeing = 1;
                 new->next = here->next;
 
                 here->size = size;
+                here->freeing = 0;
                 here->next = new;
             } else {
-                here->free = false;
+                here->freeing = 0;
             }
 
-            here->size = size;
-            here->free = false;
-            allocated += total;
-            return (char *)here + MEMORY_HEADER_SIZE;
+            return memory_pool + here->starting;
         }
+
         here = here->next;
     }
-    if (here == NULL) {
-        printf("No suitable block found for allocation of %zu bytes\n", size);
-        return NULL;
-    }
 
-    return (void *)(here + 1);
+    return NULL; 
 }
 
-
-// Free a previously allocated memory block
-void mem_free(void *block) {
-    printf("mem_free called for pointer = %p\n", block);
-    if (block == NULL) {
+void mem_free(void* block) {
+    if (!block) {
         return;
     }
 
-    // Find the metadata for the block
-    Memory *here = (Memory *)((char *)block - MEMORY_HEADER_SIZE);
-    if (here->free) {
-        return;  // Block is already free
-    }
+    size_t starting = (char*)block - memory_pool;
+    Memory* here = lista;
+    Memory* bfore = NULL;
 
-    here->free = true;
-    allocated -= here->size + MEMORY_HEADER_SIZE;
+    while (here) {
+        if (here->starting == starting) {
+            if (here->freeing) {
+                return; 
+            }
+            here->freeing = 1;
 
-    // Attempt to merge adjacent free blocks
-    Memory *next_block = here->next;
-    if (next_block && next_block->free) {
-        here->size += next_block->size + MEMORY_HEADER_SIZE;
-        here->next = next_block->next;
-    }
+            if (here->next && here->next->freeing) {
+                Memory* bnext = here->next;
+                here->size += bnext->size;
+                here->next = bnext->next;
+                free(bnext);
+            }
 
-    // Attempt to merge with the previous block (if applicable)
-    Memory *prev_block = lista;
-    while (prev_block != NULL && prev_block->next != here) {
-        prev_block = prev_block->next;
-    }
-    if (prev_block && prev_block->free) {
-        prev_block->size += here->size + MEMORY_HEADER_SIZE;
-        prev_block->next = here->next;
+            if (bfore && bfore->freeing) {
+                bfore->size += here->size;
+                bfore->next = here->next;
+                free(here);
+            }
+
+            return;
+        }
+        bfore = here;
+        here = here->next;
     }
 }
 
-// Resize an allocated memory block
-void *mem_resize(void *block, size_t size) {
+void* mem_resize(void* block, size_t size) {
     if (block == NULL) {
         return mem_alloc(size);
     }
-
-    Memory *block_here = (Memory *)((char *)block - MEMORY_HEADER_SIZE);
-    if (block_here->free) {
-        return NULL;  // Block is already free
-    }
-
-    if (size <= block_here->size) {
-        if (block_here->size > size + MEMORY_HEADER_SIZE) {
-            Memory *new = (Memory *)((char *)block_here + MEMORY_HEADER_SIZE + size);
-            new->size = block_here->size - size - MEMORY_HEADER_SIZE;
-            new->free = true;
-            new->next = block_here->next;
-            block_here->next = new;
-        }
-        block_here->size = size;
-        return block;
-    }
-
-    Memory *block_next = block_here->next;
-    if (block_next != NULL && block_next->free && (block_here->size + MEMORY_HEADER_SIZE + block_next->size) >= size) {
-        block_here->size += block_next->size + MEMORY_HEADER_SIZE;
-        block_here->next = block_next->next;
-        block_here->free = false;
-        return block;
-    }
-
-    void *new_block = mem_alloc(size);
-    if (new_block == NULL) {
+    if (size == 0) {
+        mem_free(block);
         return NULL;
     }
 
-    memcpy(new_block, block, block_here->size < size ? block_here->size : size);
-    mem_free(block);
+    Memory* bhere = (Memory*)((char*)block - sizeof(Memory));
+    size_t shere = bhere->size;
 
-    return new_block;
+    if (shere >= size) {
+        return block;
+    } else {
+        void* new = mem_alloc(size);
+        if (new == NULL) {
+            printf("Allocation failed for new block \n");
+            return NULL;  
+        }
+
+        memcpy(new, block, shere); // copy data to new block
+        mem_free(block);
+
+        return new;
+    }
 }
 
-// Deinitialize the memory manager and free all allocated memory
 void mem_deinit() {
-    Memory *here = lista;
-    while (here != NULL) {
-        Memory *next = here->next;
+    if (memory_pool) {
+        free(memory_pool);
+        memory_pool = NULL;
+        pool_size = 0;
+    }
+
+    Memory* here = lista;
+    while (here) {
+        Memory* next = here->next;
         free(here);
         here = next;
     }
     lista = NULL;
-    pool_size = 0;
-    allocated = 0;
 }
-
-void print_memory_info() {
-    printf("Pool Size: %zu, Max Allocation: %zu, Allocated: %zu\n", pool_size, max_allocation, allocated);
-}
-
