@@ -24,16 +24,16 @@ void mem_init(size_t size) {
     }
 
     pool_size = size;
-    lista = (Memory*)malloc(sizeof(Memory));
+    lista = (Memory*)malloc(sizeof(Memory)); // metadata
     if (lista == NULL) {
         printf("Error: Allocation of block list failed\n");
         return;
     }
 
-    lista->starting = 0;
-    lista->size = size;
+    lista->starting = 0; 
+    lista->size = size; 
     lista->freeing = 1;  // The block is free
-    lista->next = NULL;
+    lista->next = NULL; 
 }
 
 void* mem_alloc(size_t size) {
@@ -42,13 +42,13 @@ void* mem_alloc(size_t size) {
     while (here != NULL) {
         if (here->freeing && here->size >= size) {
             if (here->size > size) { // splitting block
-                Memory* new = (Memory*)malloc(sizeof(Memory));
+                Memory* new = (Memory*)malloc(sizeof(Memory)); // new block
                 if (new == NULL) {
                     printf("Allocation for new block failed \n");
                     return NULL;  
                 }
                 
-                new->starting = here->starting + size;
+                new->starting = here->starting + size; 
                 new->size = here->size - size;
                 new->freeing = 1;
                 new->next = here->next;
