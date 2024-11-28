@@ -37,6 +37,7 @@ void mem_init(size_t size) {
 }
 
 void* mem_alloc(size_t size) {
+
     Memory* here = lista;
     while (here != NULL) {
         if (here->freeing && here->size >= size) {
