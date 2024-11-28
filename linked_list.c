@@ -3,17 +3,14 @@
 #include <stdlib.h>
 #include <string.h>
 
-// Function to initialize a linked list
+
 void list_init(Node** head, size_t size) {
     if (head == NULL) {
         printf("Error: Invalid head pointer \n");
         return;
     }
-    // Initialize the head to NULL
     *head = NULL;
-
-    // Initialize the memory pool
-    mem_init(size);  // Call mem_init to initialize the memory pool
+    mem_init(size);
 }
 
 // Function to insert a node at the end of the list
