@@ -168,7 +168,7 @@ void list_display_range(Node** head, Node* start_node, Node* end_node) {
 int list_count_nodes(Node** head) {
     int count = 0;
     Node* here = *head;
-    while (here) {
+    while (here != NULL) {
         count++;
         here = here->next;
     }
