@@ -134,8 +134,8 @@ void* mem_resize(void* block, size_t size) {
 }
 
 void mem_deinit() {
-    if (memory_pool) {
-        free(memory_pool);
+    if (memory_pool) { 
+        mem_free(memory_pool);
         memory_pool = NULL;
         pool_size = 0;
     }
@@ -143,8 +143,9 @@ void mem_deinit() {
     Memory* here = lista;
     while (here) {
         Memory* next = here->next;
-        free(here);
+        mem_free(here);
         here = next;
     }
     lista = NULL;
 }
+
