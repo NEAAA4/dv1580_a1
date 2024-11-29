@@ -87,13 +87,13 @@ void mem_free(void* block) {
                 Memory* bnext = here->next;
                 here->size += bnext->size;
                 here->next = bnext->next;
-                mem_free(bnext);
+                free(bnext);
             }
 
             if (bfore && bfore->freeing) { // merge with prev block
                 bfore->size += here->size;
                 bfore->next = here->next;
-                mem_free(here);
+                free(here);
             }
 
             return;
