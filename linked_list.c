@@ -185,12 +185,15 @@ int list_count_nodes(Node** head) {
 
 
 void list_cleanup(Node** head) {
+    if (head == NULL || *head == NULL) {
+        return;
+    }
+
     Node* here = *head;
     while (here != NULL) {
         Node* next = here->next;
-        mem_free(here);
+        mem_free(here); 
         here = next;
     }
     *head = NULL;
 }
-
