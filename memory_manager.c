@@ -3,7 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-// Structure for memory block
+// Struktur för minnesblock
 typedef struct Memory {
     size_t size;
     size_t starting;
@@ -11,7 +11,7 @@ typedef struct Memory {
     int freeing;
 } Memory;
 
-// Global variables
+// Globala variabler
 static char* memory_pool = NULL;
 static Memory* lista = NULL;
 static size_t pool_size = 0;
@@ -27,12 +27,14 @@ void mem_init(size_t size) {
     lista = (Memory*)malloc(sizeof(Memory)); // metadata
     if (lista == NULL) {
         printf("Allocation of block list failed\n");
+        free(memory_pool);
+        memory_pool = NULL;
         return;
     }
 
     lista->starting = 0; 
     lista->size = size; 
-    lista->freeing = 1;  // The block is free
+    lista->freeing = 1;  // Blocket är fritt
     lista->next = NULL; 
 }
 
@@ -40,26 +42,25 @@ void* mem_alloc(size_t size) {
     Memory* here = lista;
     while (here != NULL) {
         if (here->freeing && here->size >= size) {
-            if (here->size > size) { // splitting block
-                Memory* new = (Memory*)malloc(sizeof(Memory)); // new block
+            if (here->size > size) { // Dela block
+                Memory* new = (Memory*)malloc(sizeof(Memory)); // nytt block
                 if (new == NULL) {
                     printf("Allocation for new block failed \n");
                     return NULL;  
                 }
                 
-                new->starting = here->starting + size;  // + size to next 
+                new->starting = here->starting + size; 
                 new->size = here->size - size;
                 new->freeing = 1;  
                 new->next = here->next;
 
                 here->size = size;
-                here->freeing = 0; // not free
+                here->freeing = 0; // inte fri
                 here->next = new;
-            } 
-            else {
+            } else {
                 here->freeing = 0;
             }
-            return memory_pool + here->starting; // memorypool + startvalue
+            return memory_pool + here->starting; 
         }
 
         here = here->next;
@@ -79,18 +80,19 @@ void mem_free(void* block) {
     while (here) {
         if (here->starting == starting) {
             if (here->freeing) {
+                printf("Block already freed\n");
                 return; 
             }
             here->freeing = 1;
 
-            if (here->next && here->next->freeing) { // merge with next block
+            if (here->next && here->next->freeing) { // slå ihop med nästa
                 Memory* bnext = here->next;
                 here->size += bnext->size;
                 here->next = bnext->next;
                 free(bnext);
             }
 
-            if (bfore && bfore->freeing) { // merge with prev block
+            if (bfore && bfore->freeing) { // slå ihop med föregående
                 bfore->size += here->size;
                 bfore->next = here->next;
                 free(here);
@@ -98,7 +100,7 @@ void mem_free(void* block) {
 
             return;
         }
-        bfore = here; // next block
+        bfore = here; 
         here = here->next;
     }
 }
@@ -112,19 +114,29 @@ void* mem_resize(void* block, size_t size) {
         return NULL;
     }
 
-    Memory* bhere = (Memory*)((char*)block - sizeof(Memory));
-    size_t shere = bhere->size;
+    Memory* here = lista;
+    while (here != NULL) {
+        if (memory_pool + here->starting == block) {
+            break;
+        }
+        here = here->next;
+    }
+    if (here == NULL) {
+        printf("Block not found in list\n");
+        return NULL;
+    }
 
+    size_t shere = here->size;
     if (shere >= size) { 
         return block;
     } else {
-        void* new = mem_alloc(size); // allocate new block
+        void* new = mem_alloc(size); // allokera nytt block
         if (new == NULL) {
             printf("Allocation failed for new block \n");
             return NULL;  
         }
 
-        memcpy(new, block, shere); // copy data to new block
+        memcpy(new, block, shere); // kopiera data
         mem_free(block);
 
         return new;
@@ -133,7 +145,7 @@ void* mem_resize(void* block, size_t size) {
 
 void mem_deinit() {
     if (memory_pool) { 
-        mem_free(memory_pool);
+        free(memory_pool); // Frigör poolen direkt
         memory_pool = NULL;
         pool_size = 0;
     }
@@ -141,7 +153,7 @@ void mem_deinit() {
     Memory* here = lista;
     while (here) {
         Memory* next = here->next;
-        mem_free(here);
+        free(here); // Frigör metadata
         here = next;
     }
     lista = NULL;
